@@ -4,3 +4,4 @@ joblib
 opencv-python
 numpy
 gunicorn
+scikit-learn
