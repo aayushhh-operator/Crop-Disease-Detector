@@ -1,0 +1,72 @@
+import os
+import numpy as np
+import cv2
+import joblib
+import tensorflow as tf
+from flask import Flask, render_template, request, jsonify
+
+# Initialize Flask app
+app = Flask(__name__)
+
+# Paths to model and encoder
+cnn_model_path = 'models/cnn.h5'
+rfc_model_path = 'models/rfc.pkl'
+label_encoder_path = 'models/label_encoder.pkl'
+
+# Load the models and encoder
+cnn_model = tf.keras.models.load_model('models/cnn2.h5')
+print("CNN model loaded successfully.")
+rf_classifier = joblib.load('models/rfc2.pkl')
+print("Random Forest model loaded successfully.")
+label_encoder = joblib.load('models/labels.pkl')
+print("Label encoder loaded successfully.")
+
+# Function to preprocess image for prediction
+def preprocess_image(image_path, img_size=128):
+    img = cv2.imread(image_path)
+    img = cv2.resize(img, (img_size, img_size))  # Resize image
+    img = img / 255.0  # Normalize
+    img = np.expand_dims(img, axis=0)  # Add batch dimension
+    return img
+
+# Function to predict disease from an image
+def predict_disease(image_path):
+    img = preprocess_image(image_path)
+    
+    # Extract features using CNN
+    features = cnn_model.predict(img)
+    
+    # Predict disease using Random Forest
+    disease_prediction = rf_classifier.predict(features)
+    
+    # Map numeric prediction to disease label
+    disease_label = label_encoder.inverse_transform(disease_prediction)
+    
+    return disease_label[0]
+
+# Route for the home page
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+# Route to handle image upload and prediction
+@app.route('/predict', methods=['POST'])
+def predict():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'})
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'})
+    
+    # Save the uploaded image
+    image_path = os.path.join('static', file.filename)
+    file.save(image_path)
+    
+    # Predict disease
+    predicted_disease = predict_disease(image_path)
+    
+    return jsonify({'predicted_disease': predicted_disease})
+
+if __name__ == '__main__':
+    app.run(debug=True)
