@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 # Paths to model and encoder
 cnn_model_path = 'models/cnn.tflite'  # Changed to .tflite
-rfc_model_path = 'models/rfc.pkl'
+rfc_model_path = 'models/rfc2.pkl'
 label_encoder_path = 'models/label_encoder.pkl'
 
 # Load the models and encoder
