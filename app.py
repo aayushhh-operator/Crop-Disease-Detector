@@ -9,15 +9,21 @@ from flask import Flask, render_template, request, jsonify
 app = Flask(__name__)
 
 # Paths to model and encoder
-cnn_model_path = 'models/cnn.h5'
+cnn_model_path = 'models/cnn.tflite'  # Changed to .tflite
 rfc_model_path = 'models/rfc.pkl'
 label_encoder_path = 'models/label_encoder.pkl'
 
 # Load the models and encoder
-cnn_model = tf.keras.models.load_model('models/cnn2.h5')
+# Load TensorFlow Lite model
+interpreter = tf.lite.Interpreter(model_path=cnn_model_path)
+interpreter.allocate_tensors()
 print("CNN model loaded successfully.")
+
+# Load Random Forest Classifier
 rf_classifier = joblib.load('models/rfc2.pkl')
 print("Random Forest model loaded successfully.")
+
+# Load label encoder
 label_encoder = joblib.load('models/labels.pkl')
 print("Label encoder loaded successfully.")
 
@@ -33,8 +39,18 @@ def preprocess_image(image_path, img_size=128):
 def predict_disease(image_path):
     img = preprocess_image(image_path)
     
-    # Extract features using CNN
-    features = cnn_model.predict(img)
+    # Set tensor to the input details of the model
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+
+    # Set input tensor
+    interpreter.set_tensor(input_details[0]['index'], img.astype(np.float32))
+    
+    # Invoke the interpreter
+    interpreter.invoke()
+    
+    # Get the output prediction
+    features = interpreter.get_tensor(output_details[0]['index'])
     
     # Predict disease using Random Forest
     disease_prediction = rf_classifier.predict(features)
