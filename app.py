@@ -8,6 +8,10 @@ from flask import Flask, render_template, request, jsonify
 # Initialize Flask app
 app = Flask(__name__)
 
+UPLOAD_FOLDER = 'static/uploads'
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
 # Paths to model and encoder
 cnn_model_path = 'models/cnn.tflite'  # Changed to .tflite
 rfc_model_path = 'models/rfc2.pkl'
